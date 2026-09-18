@@ -1,0 +1,23 @@
+name: Portfolio Tracker
+
+on:
+  schedule:
+    # UTC时间 05:00 和 16:00 对应北京时间 13:00 和 24:00 (次日0点)
+    - cron: '0 5,16 * * *'
+  workflow_dispatch: # 允许你在网页上手动点“Run workflow”随时触发测试
+
+jobs:
+  check-portfolio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Tracker
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python main.py
