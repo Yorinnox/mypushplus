@@ -32,7 +32,8 @@ def fetch_market_history(assets):
     tickers += ["USDCNY=X", "USDT-USD", "USDC-USD"]
     
     # 智能代理识别：如果在 GitHub Actions 云端运行，则直连（无需代理）；若在本地运行，自动走 Clash 7890 端口
-    proxy = None if os.environ.get("GITHUB_ACTIONS") else "http://127.0.0.1:7890"
+    # proxy = None if os.environ.get("GITHUB_ACTIONS") else "http://127.0.0.1:7890"
+    proxy = None
 
     # 获取近 1 个月日线
     df = yf.download(tickers=tickers, period="1mo", interval="1d", progress=False, proxy=proxy)['Close']
