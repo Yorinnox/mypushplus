@@ -1,0 +1,65 @@
+{
+    "initial_capital_cny": 303569,
+    "debt_cny": 151784.5,
+    "target_leverage": 1.50,
+    "leverage_tolerance": 0.05,
+    "weight_rel_tolerance": 0.20,
+    "assets": {
+        "512890": {
+            "name": "红利低波",
+            "ticker": "512890.SS",
+            "currency": "CNY",
+            "group": "A股账户",
+            "target_w": 0.1989,
+            "qty": 68000
+        },
+        "002714": {
+            "name": "牧原股份",
+            "ticker": "002714.SZ",
+            "currency": "CNY",
+            "group": "A股账户",
+            "target_w": 0.1430,
+            "qty": 1600
+        },
+        "001201": {
+            "name": "东瑞股份",
+            "ticker": "001201.SZ",
+            "currency": "CNY",
+            "group": "A股账户",
+            "target_w": 0.2047,
+            "qty": 6500
+        },
+        "QQQ": {
+            "name": "纳指",
+            "ticker": "QQQ",
+            "currency": "USDT",
+            "group": "币安/海外",
+            "target_w": 0.1848,
+            "qty": 17.65
+        },
+        "BTC": {
+            "name": "大饼",
+            "ticker": "BTC-USD",
+            "currency": "USDC",
+            "group": "币安/海外",
+            "target_w": 0.1170,
+            "qty": 0.105
+        },
+        "SOL": {
+            "name": "Sol",
+            "ticker": "SOL-USD",
+            "currency": "USDC",
+            "group": "币安/海外",
+            "target_w": 0.0568,
+            "qty": 39.37
+        },
+        "PAXG": {
+            "name": "黄金",
+            "ticker": "PAXG-USD",
+            "currency": "USDT",
+            "group": "币安/海外",
+            "target_w": 0.0947,
+            "qty": 1.48
+        }
+    }
+}
