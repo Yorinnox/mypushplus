@@ -2,7 +2,7 @@ name: Portfolio Tracker
 
 on:
   schedule:
-    - cron: '9/30 * * * *'
+    - cron: '9,43 * * * *'
   workflow_dispatch: # 允许你在网页上手动点“Run workflow”随时触发测试
 
 # 必须赋予写权限，以便回传图片和 CSV 数据
