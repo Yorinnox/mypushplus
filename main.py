@@ -65,12 +65,8 @@ def get_baseline_pnl(df_hist, now_net, now_dt):
 
     df_hist["dt"] = pd.to_datetime(df_hist["timestamp"]).dt.tz_convert('Asia/Shanghai')
 
-    # 1. 业务结算日期判定（凌晨 3 点前算作前一天）
-    if now_dt.hour < 3:
-        report_dt = now_dt - timedelta(days=1)
-    else:
-        report_dt = now_dt
-
+    report_dt = now_dt
+    
     # 2. 构造四个锚点时间（北京时间）
     target_day = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)      # 今日 00:00
     target_week = target_day - timedelta(days=report_dt.weekday())                 # 本周一 00:00
