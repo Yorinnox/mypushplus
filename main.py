@@ -123,6 +123,7 @@ def plot_performance_chart(df_hist):
 
     ax.set_title("Portfolio Growth vs. Cash Baseline", fontsize=14, pad=12, weight='bold')
     ax.legend(frameon=True, facecolor="white", edgecolor="none", loc="upper left")
+    ax.set_yscale('log')
     plt.tight_layout()
     plt.savefig(CHART_FILE)
     plt.close()
