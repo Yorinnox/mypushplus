@@ -2,22 +2,40 @@ name: Portfolio Tracker
 
 on:
   schedule:
-    # UTC时间 05:00 和 16:00 对应北京时间 13:00 和 24:00 (次日0点)
-    - cron: '0 5,16 * * *'
+    - cron: '5 5 * * *'    # UTC 05:05 -> 北京时间 13:05
+    - cron: '55 15 * * *'  # UTC 15:55 -> 北京时间 23:55
+    - cron: '25,35,45 5 * * *'
+    - cron: '25,35,45 13 * * *'
   workflow_dispatch: # 允许你在网页上手动点“Run workflow”随时触发测试
+
+# 必须赋予写权限，以便回传图片和 CSV 数据
+permissions:
+  contents: write
 
 jobs:
   check-portfolio:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+          
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install matplotlib pytz
+          
       - name: Run Tracker
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
         run: python main.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add history.csv history.png
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update portfolio history & chart [skip ci]" && git push)
