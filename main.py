@@ -9,6 +9,7 @@ from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 from matplotlib.ticker import ScalarFormatter
 from datetime import datetime, timedelta
 
@@ -121,7 +122,14 @@ def plot_performance_chart(df_hist):
     # 日期轴格式化
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d', tz=TZ_BJ))
     ax.set_yscale('log')
-    ax.yaxis.set_major_formatter('¥{x:,.0f}')
+
+    # 2. 使用 ScalarFormatter 强制显示普通数字
+    formatter = ticker.ScalarFormatter()
+    formatter.set_scientific(False)  # 禁用科学计数法
+    formatter.set_useOffset(False)  # 禁用偏移量
+    ax.yaxis.set_major_formatter(formatter)
+    ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'¥{x:,.0f}'))
 
     ax.set_title("Portfolio Growth vs. Cash Baseline", fontsize=14, pad=12, weight='bold')
     ax.legend(frameon=True, facecolor="white", edgecolor="none", loc="upper left")
