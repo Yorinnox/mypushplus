@@ -4,6 +4,7 @@
     "target_leverage": 1.50,
     "leverage_tolerance": 0.05,
     "weight_rel_tolerance": 0.20,
+    "github_repo": "Yorinnox/mypushplus",
     "assets": {
         "512890": {
             "name": "红利低波",
