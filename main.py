@@ -9,7 +9,7 @@ from datetime import datetime
 import pytz
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 HISTORY_FILE = "history.csv"
 CHART_FILE = "history.png"
@@ -51,7 +51,6 @@ def find_closest_record(df_hist, target_dt):
     """在历史记录中，寻找与 target_dt 时间差最小的那一条记录"""
     if df_hist.empty:
         return None
-    # 计算每条记录与目标时间的绝对时间差
     time_diffs = (df_hist["dt"] - target_dt).abs()
     best_idx = time_diffs.idxmin()
     return df_hist.loc[best_idx]
@@ -78,7 +77,7 @@ def get_baseline_pnl(df_hist, now_net, now_dt):
     # 今日 00:00
     target_day = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     # 本周一 00:00 (weekday: 0代表周一，6代表周日)
-    target_week = target_day - timedelta(days=report_day_weekday := report_dt.weekday())
+    target_week = target_day - timedelta(days=report_dt.weekday())
     # 本月 1 日 00:00
     target_month = target_day.replace(day=1)
 
