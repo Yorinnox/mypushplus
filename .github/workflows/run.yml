@@ -2,8 +2,6 @@ name: Portfolio Tracker
 
 on:
   schedule:
-    - cron: '5 5 * * *'    # UTC 05:05 -> 北京时间 13:05
-    - cron: '55 15 * * *'  # UTC 15:55 -> 北京时间 23:55
     - cron: '9/30 * * * *'
   workflow_dispatch: # 允许你在网页上手动点“Run workflow”随时触发测试
 
