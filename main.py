@@ -3,25 +3,32 @@ import json
 import math
 import requests
 import pandas as pd
+import numpy as np
 import yfinance as yf
+from datetime import datetime
+import pytz
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import timedelta
 
-# 颜色渲染工具（国内红涨绿跌习惯）
+HISTORY_FILE = "history.csv"
+CHART_FILE = "history.png"
+TZ_BJ = pytz.timezone('Asia/Shanghai')
+
 def color_text(val, text):
     if val > 0:
-        return f'<font color="#d93025">{text}</font>'  # 红色
+        return f'<font color="#d93025">{text}</font>'  # 涨-红
     elif val < 0:
-        return f'<font color="#188038">{text}</font>'  # 绿色
+        return f'<font color="#188038">{text}</font>'  # 跌-绿
     return text
 
 def format_diff(diff_pct):
     sign = "+" if diff_pct > 0 else ""
-    raw_str = f"{sign}{diff_pct:.2f}%"
-    return color_text(diff_pct, raw_str)
+    return color_text(diff_pct, f"{sign}{diff_pct:.2f}%")
 
 def format_pnl_str(pnl_val, pct_val):
     sign = "+" if pnl_val > 0 else ""
-    raw_str = f"{sign}¥{pnl_val:,.0f} ({sign}{pct_val:.2f}%)"
-    return color_text(pnl_val, raw_str)
+    return color_text(pnl_val, f"{sign}¥{pnl_val:,.0f} ({sign}{pct_val:.2f}%)")
 
 def load_config():
     with open("config.json", "r", encoding="utf-8") as f:
@@ -30,94 +37,132 @@ def load_config():
 def fetch_market_history(assets):
     tickers = [item["ticker"] for item in assets.values()]
     tickers += ["USDCNY=X", "USDT-USD", "USDC-USD"]
-
-    # 获取近 1 个月日线
     df = yf.download(tickers=tickers, period="1mo", interval="1d", progress=False)['Close']
-    
-    # 核心修复 1：ffill() 让休市资产顺延周五收盘价，bfill() 补齐开头空缺，彻底替代有隐患的 dropna()
     df = df.ffill().bfill()
-
-    # 核心修复 2：按真实自然日进行跨市场日历对齐（解决周末多出 2 根币圈 K 线导致的 iloc 错位问题）
     latest = df.iloc[-1]
-    latest_dt = df.index[-1]
+    return latest
 
-    dt_24h = latest_dt - pd.Timedelta(days=1)
-    dt_7d = latest_dt - pd.Timedelta(days=7)
+def load_or_init_history():
+    if os.path.exists(HISTORY_FILE):
+        return pd.read_csv(HISTORY_FILE)
+    return pd.DataFrame(columns=["timestamp", "net_assets", "principal", "total_assets"])
 
-    # asof 会精准取到 <= 对应时间戳的历史行情
-    prev_24h = df.asof(dt_24h)
-    prev_7d = df.asof(dt_7d)
+def find_closest_record(df_hist, target_dt):
+    """在历史记录中，寻找与 target_dt 时间差最小的那一条记录"""
+    if df_hist.empty:
+        return None
+    # 计算每条记录与目标时间的绝对时间差
+    time_diffs = (df_hist["dt"] - target_dt).abs()
+    best_idx = time_diffs.idxmin()
+    return df_hist.loc[best_idx]
 
-    # 极端情况兜底
-    if prev_24h is None or (hasattr(prev_24h, 'isna') and prev_24h.isna().any()):
-        prev_24h = df.iloc[-2] if len(df) >= 2 else latest
-    if prev_7d is None or (hasattr(prev_7d, 'isna') and prev_7d.isna().any()):
-        prev_7d = df.iloc[0]
+def get_baseline_pnl(df_hist, now_net, now_dt):
+    """
+    精准锚定 0 点寻找最近历史快照计算 日/周/月 盈亏
+    """
+    if df_hist.empty or len(df_hist) < 1:
+        return (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)
 
-    return {
-        "df": df,
-        "latest": latest,
-        "prev_24h": prev_24h,
-        "prev_7d": prev_7d
-    }
+    # 确保时间列转为北京时间对象
+    df_hist["dt"] = pd.to_datetime(df_hist["timestamp"]).dt.tz_convert('Asia/Shanghai')
+
+    # 1. 业务结算日期判定：
+    # 如果当前时间处于凌晨 00:00 ~ 03:00（大概率是 23:55 任务延迟拖过零点），
+    # 此时它是上一天的收盘结算，业务基准日期仍应按前一天计算。
+    if now_dt.hour < 3:
+        report_dt = now_dt - timedelta(days=1)
+    else:
+        report_dt = now_dt
+
+    # 2. 构造三个锚点时间（北京时间）
+    # 今日 00:00
+    target_day = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    # 本周一 00:00 (weekday: 0代表周一，6代表周日)
+    target_week = target_day - timedelta(days=report_day_weekday := report_dt.weekday())
+    # 本月 1 日 00:00
+    target_month = target_day.replace(day=1)
+
+    # 3. 寻找最接近锚点的记录
+    rec_day = find_closest_record(df_hist, target_day)
+    rec_week = find_closest_record(df_hist, target_week)
+    rec_month = find_closest_record(df_hist, target_month)
+
+    def calc_diff(record):
+        if record is None:
+            return 0.0, 0.0
+        base_val = float(record["net_assets"])
+        diff = now_net - base_val
+        pct = (diff / base_val) * 100 if base_val > 0 else 0.0
+        return diff, pct
+
+    return calc_diff(rec_day), calc_diff(rec_week), calc_diff(rec_month)
+
+def plot_performance_chart(df_hist):
+    if len(df_hist) < 2:
+        return False
+
+    # 转换时区
+    df_hist["dt"] = pd.to_datetime(df_hist["timestamp"]).dt.tz_convert('Asia/Shanghai')
+    
+    # 设置样式
+    plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    fig, ax = plt.subplots(figsize=(10, 5), dpi=200)
+
+    # 绘制折线
+    ax.plot(df_hist["dt"], df_hist["net_assets"], label="Net Assets (实际净资产)", color="#1a73e8", linewidth=2.5)
+    ax.plot(df_hist["dt"], df_hist["principal"], label="Baseline (本金基线)", color="#80868b", linewidth=1.8, linestyle="--")
+
+    # 填充颜色区域代表超额盈亏
+    ax.fill_between(df_hist["dt"], df_hist["net_assets"], df_hist["principal"], 
+                    where=(df_hist["net_assets"] >= df_hist["principal"]),
+                    facecolor='#ea4335', alpha=0.15, interpolate=True)
+    ax.fill_between(df_hist["dt"], df_hist["net_assets"], df_hist["principal"], 
+                    where=(df_hist["net_assets"] < df_hist["principal"]),
+                    facecolor='#34a853', alpha=0.15, interpolate=True)
+
+    # 日期轴格式化
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d', tz=TZ_BJ))
+    ax.yaxis.set_major_formatter('¥{x:,.0f}')
+
+    ax.set_title("Portfolio Growth vs. Cash Baseline", fontsize=14, pad=12, weight='bold')
+    ax.legend(frameon=True, facecolor="white", edgecolor="none", loc="upper left")
+    plt.tight_layout()
+    plt.savefig(CHART_FILE)
+    plt.close()
+    return True
 
 def evaluate():
     cfg = load_config()
     assets = cfg["assets"]
-    hist = fetch_market_history(assets)
+    latest = fetch_market_history(assets)
 
-    latest = hist["latest"]
-    prev_24h = hist["prev_24h"]
-    prev_7d = hist["prev_7d"]
-
-    # 汇率处理（周末外汇休市时，自动顺延周五汇率）
     usd_cny_now = float(latest["USDCNY=X"])
     usdt_usd_now = float(latest["USDT-USD"])
     usdc_usd_now = float(latest["USDC-USD"])
 
-    usd_cny_24h = float(prev_24h["USDCNY=X"])
-    usdt_usd_24h = float(prev_24h["USDT-USD"])
-    usdc_usd_24h = float(prev_24h["USDC-USD"])
-
-    usd_cny_7d = float(prev_7d["USDCNY=X"])
-    usdt_usd_7d = float(prev_7d["USDT-USD"])
-    usdc_usd_7d = float(prev_7d["USDC-USD"])
-
     total_assets_now = 0.0
-    total_assets_24h = 0.0
-    total_assets_7d = 0.0
     asset_states = {}
 
     for code, info in assets.items():
         ticker = info["ticker"]
         qty = info["qty"]
         curr_type = info["currency"]
-
         p_now = float(latest[ticker])
-        p_24h = float(prev_24h[ticker])
-        p_7d = float(prev_7d[ticker])
 
-        # 本币单价与人民币折算
         if curr_type == "CNY":
             local_p_now = p_now
             cny_val_now = qty * p_now
-            cny_val_24h = qty * p_24h
-            cny_val_7d = qty * p_7d
         elif curr_type == "USDT":
             local_p_now = p_now / usdt_usd_now
             cny_val_now = qty * p_now * usd_cny_now
-            cny_val_24h = qty * p_24h * usd_cny_24h
-            cny_val_7d = qty * p_7d * usd_cny_7d
         elif curr_type == "USDC":
             local_p_now = p_now / usdc_usd_now
             cny_val_now = qty * p_now * usd_cny_now
-            cny_val_24h = qty * p_24h * usd_cny_24h
-            cny_val_7d = qty * p_7d * usd_cny_7d
 
         total_assets_now += cny_val_now
-        total_assets_24h += cny_val_24h
-        total_assets_7d += cny_val_7d
-
         asset_states[code] = {
             "name": info["name"],
             "currency": curr_type,
@@ -129,27 +174,34 @@ def evaluate():
             "cny_val": cny_val_now,
         }
 
-    # 宏观杠杆与盈亏
     debt = cfg["debt_cny"]
     net_now = total_assets_now - debt
-    net_24h = total_assets_24h - debt
-    net_7d = total_assets_7d - debt
-
-    leverage = total_assets_now / net_now if net_now > 0 else 0
     init_cap = cfg["initial_capital_cny"]
+    leverage = total_assets_now / net_now if net_now > 0 else 0
+
+    # 历史记录比对
+    now_dt = datetime.now(TZ_BJ)
+    df_hist = load_or_init_history()
+    day_pnl, week_pnl, month_pnl = get_baseline_pnl(df_hist, net_now, now_dt)
 
     total_pnl = net_now - init_cap
     total_pnl_pct = (total_pnl / init_cap) * 100
 
-    pnl_24h = net_now - net_24h
-    pnl_24h_pct = (pnl_24h / net_24h) * 100 if net_24h > 0 else 0
+    # 保存最新快照
+    new_row = {
+        "timestamp": now_dt.isoformat(),
+        "net_assets": round(net_now, 2),
+        "principal": round(init_cap, 2),
+        "total_assets": round(total_assets_now, 2)
+    }
+    df_hist = pd.concat([df_hist, pd.DataFrame([new_row])], ignore_index=True)
+    df_hist.to_csv(HISTORY_FILE, index=False)
 
-    pnl_7d = net_now - net_7d
-    pnl_7d_pct = (pnl_7d / net_7d) * 100 if net_7d > 0 else 0
+    # 绘图
+    has_chart = plot_performance_chart(df_hist)
 
+    # 调仓逻辑计算
     leverage_triggered = abs(leverage - cfg["target_leverage"]) > cfg["leverage_tolerance"]
-
-    # 计算目标市值与再平衡操作
     actions = []
     for code, s in asset_states.items():
         curr_w = s["cny_val"] / total_assets_now
@@ -169,7 +221,6 @@ def evaluate():
         s["target_local"] = target_local
         s["diff_local"] = diff_local
 
-        # 判断偏离阈值
         rel_diff = diff_w / s["target_w"]
         if abs(rel_diff) > cfg["weight_rel_tolerance"] or leverage_triggered:
             raw_qty = diff_local / s["local_price"]
@@ -187,23 +238,22 @@ def evaluate():
             })
 
     return {
-        "rates": {"USDCNY": usd_cny_now},
+        "repo": cfg.get("github_repo", ""),
         "total_assets": total_assets_now,
         "net_assets": net_now,
         "leverage": leverage,
         "total_pnl": total_pnl,
         "total_pnl_pct": total_pnl_pct,
-        "pnl_24h": pnl_24h,
-        "pnl_24h_pct": pnl_24h_pct,
-        "pnl_7d": pnl_7d,
-        "pnl_7d_pct": pnl_7d_pct,
+        "day_pnl": day_pnl,
+        "week_pnl": week_pnl,
+        "month_pnl": month_pnl,
         "asset_states": asset_states,
         "actions": actions,
-        "leverage_triggered": leverage_triggered
+        "leverage_triggered": leverage_triggered,
+        "has_chart": has_chart
     }
 
 def send_notification(d):
-    # 优先使用环境变量，本地兜底使用你的默认 Token
     token = os.environ.get("PUSHPLUS_TOKEN")
     if not token:
         print("错误: 未配置 PUSHPLUS_TOKEN")
@@ -211,26 +261,31 @@ def send_notification(d):
 
     has_actions = len(d["actions"]) > 0 or d["leverage_triggered"]
     status_tag = "⚠️【调仓提醒】" if has_actions else "📊【组合巡检】"
-    # 保留你修改的 4 位小数杠杆格式
-    title = f"{status_tag} 杠杆: {d['leverage']:.4f}x | 24h: {d['pnl_24h_pct']:+.2f}%"
+    title = f"{status_tag} 杠杆: {d['leverage']:.4f}x | 今日: {d['day_pnl'][1]:+.2f}%"
 
     lines = [
         "### 📈 组合状态概览",
         f"- **总资产**: ¥{d['total_assets']:,.0f} | **净资产**: ¥{d['net_assets']:,.0f}",
         f"- **实际杠杆**: **{d['leverage']:.4f}x** (目标: 1.50x)",
-        f"- **近 24 小时盈亏**: {format_pnl_str(d['pnl_24h'], d['pnl_24h_pct'])}",
-        f"- **近 7 天累计盈亏**: {format_pnl_str(d['pnl_7d'], d['pnl_7d_pct'])}",
-        f"- **成立以来总盈亏**: {format_pnl_str(d['total_pnl'], d['total_pnl_pct'])}\n",
-        "### 📦 持仓分布"
+        f"- **今日盈亏**: {format_pnl_str(d['day_pnl'][0], d['day_pnl'][1])}",
+        f"- **本周盈亏**: {format_pnl_str(d['week_pnl'][0], d['week_pnl'][1])}",
+        f"- **本月盈亏**: {format_pnl_str(d['month_pnl'][0], d['month_pnl'][1])}",
+        f"- **总累计盈亏**: {format_pnl_str(d['total_pnl'], d['total_pnl_pct'])}\n",
     ]
 
+    # 如果有折线图，通过 jsDelivr CDN 嵌入图片
+    if d["has_chart"] and d["repo"]:
+        # 添加时间戳参数防止微信或浏览器图片缓存
+        t_stamp = int(datetime.now().timestamp())
+        chart_url = f"https://fastly.jsdelivr.net/gh/{d['repo']}@main/{CHART_FILE}?v={t_stamp}"
+        lines.append(f"### 📉 净资产走势\n![资产走势]({chart_url})\n")
+
+    lines.append("### 📦 持仓分布")
     for code, s in d["asset_states"].items():
         diff_str = format_diff(s["diff_w"] * 100)
         base_line = f"- **{s['name']}**: ¥{s['cny_val']:,.0f} ({s['target_w']*100:.2f}% {diff_str})"
-        
         if s["currency"] != "CNY":
             base_line += f" [{s['local_val']:,.2f} {s['currency']}]"
-            
         lines.append(base_line)
 
     if has_actions:
