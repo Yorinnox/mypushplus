@@ -41,4 +41,4 @@ jobs:
           git add history.csv history.png 2>/dev/null || git add history.csv
           
           # 如果有变更才提交，避免无变动时报错
-          git diff --staged --quiet || (git commit -m "Auto-update portfolio history & chart [skip ci]" && git push)
+          git diff --staged --quiet || (git commit -m "Auto-update portfolio history & chart" && git push)
