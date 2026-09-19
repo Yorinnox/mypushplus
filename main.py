@@ -111,8 +111,8 @@ def plot_performance_chart(df_hist):
     fig, ax = plt.subplots(figsize=(10, 5), dpi=200)
 
     # 绘制折线
-    ax.plot(df_hist["dt"], df_hist["net_assets"], label="Net Assets (实际净资产)", color="#1a73e8", linewidth=2.5)
-    ax.plot(df_hist["dt"], df_hist["principal"], label="Baseline (本金基线)", color="#80868b", linewidth=1.8, linestyle="--")
+    ax.plot(df_hist["dt"], df_hist["net_assets"], label="Net Assets", color="#1a73e8", linewidth=2.5)
+    ax.plot(df_hist["dt"], df_hist["principal"], label="Baseline", color="#80868b", linewidth=1.8, linestyle="--")
 
     # 填充颜色区域代表超额盈亏
     ax.fill_between(df_hist["dt"], df_hist["net_assets"], df_hist["principal"], 
