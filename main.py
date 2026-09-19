@@ -54,37 +54,32 @@ def find_closest_record(df_hist, target_dt):
     time_diffs = (df_hist["dt"] - target_dt).abs()
     best_idx = time_diffs.idxmin()
     return df_hist.loc[best_idx]
-
 def get_baseline_pnl(df_hist, now_net, now_dt):
     """
-    精准锚定 0 点寻找最近历史快照计算 日/周/月 盈亏
+    精准锚定 0 点寻找最近历史快照计算 日/周/月/年 盈亏
     """
     if df_hist.empty or len(df_hist) < 1:
-        return (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)
+        return (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)
 
-    # 确保时间列转为北京时间对象
     df_hist["dt"] = pd.to_datetime(df_hist["timestamp"]).dt.tz_convert('Asia/Shanghai')
 
-    # 1. 业务结算日期判定：
-    # 如果当前时间处于凌晨 00:00 ~ 03:00（大概率是 23:55 任务延迟拖过零点），
-    # 此时它是上一天的收盘结算，业务基准日期仍应按前一天计算。
+    # 1. 业务结算日期判定（凌晨 3 点前算作前一天）
     if now_dt.hour < 3:
         report_dt = now_dt - timedelta(days=1)
     else:
         report_dt = now_dt
 
-    # 2. 构造三个锚点时间（北京时间）
-    # 今日 00:00
-    target_day = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    # 本周一 00:00 (weekday: 0代表周一，6代表周日)
-    target_week = target_day - timedelta(days=report_dt.weekday())
-    # 本月 1 日 00:00
-    target_month = target_day.replace(day=1)
+    # 2. 构造四个锚点时间（北京时间）
+    target_day = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)      # 今日 00:00
+    target_week = target_day - timedelta(days=report_dt.weekday())                 # 本周一 00:00
+    target_month = target_day.replace(day=1)                                       # 本月 1 日 00:00
+    target_year = target_day.replace(month=1, day=1)                               # 本年 1 月 1 日 00:00
 
     # 3. 寻找最接近锚点的记录
     rec_day = find_closest_record(df_hist, target_day)
     rec_week = find_closest_record(df_hist, target_week)
     rec_month = find_closest_record(df_hist, target_month)
+    rec_year = find_closest_record(df_hist, target_year)
 
     def calc_diff(record):
         if record is None:
@@ -94,7 +89,7 @@ def get_baseline_pnl(df_hist, now_net, now_dt):
         pct = (diff / base_val) * 100 if base_val > 0 else 0.0
         return diff, pct
 
-    return calc_diff(rec_day), calc_diff(rec_week), calc_diff(rec_month)
+    return calc_diff(rec_day), calc_diff(rec_week), calc_diff(rec_month), calc_diff(rec_year)
 
 def plot_performance_chart(df_hist):
     if len(df_hist) < 2:
@@ -181,7 +176,8 @@ def evaluate():
     # 历史记录比对
     now_dt = datetime.now(TZ_BJ)
     df_hist = load_or_init_history()
-    day_pnl, week_pnl, month_pnl = get_baseline_pnl(df_hist, net_now, now_dt)
+    # 接收新增的 year_pnl
+    day_pnl, week_pnl, month_pnl, year_pnl = get_baseline_pnl(df_hist, net_now, now_dt)
 
     total_pnl = net_now - init_cap
     total_pnl_pct = (total_pnl / init_cap) * 100
@@ -249,6 +245,7 @@ def evaluate():
         "day_pnl": day_pnl,
         "week_pnl": week_pnl,
         "month_pnl": month_pnl,
+        "year_pnl": year_pnl,
         "asset_states": asset_states,
         "actions": actions,
         "leverage_triggered": leverage_triggered,
@@ -272,6 +269,7 @@ def send_notification(d):
         f"- **今日盈亏**: {format_pnl_str(d['day_pnl'][0], d['day_pnl'][1])}",
         f"- **本周盈亏**: {format_pnl_str(d['week_pnl'][0], d['week_pnl'][1])}",
         f"- **本月盈亏**: {format_pnl_str(d['month_pnl'][0], d['month_pnl'][1])}",
+        f"- **本年盈亏**: {format_pnl_str(d['year_pnl'][0], d['year_pnl'][1])}",
         f"- **总累计盈亏**: {format_pnl_str(d['total_pnl'], d['total_pnl_pct'])}\n",
     ]
 
