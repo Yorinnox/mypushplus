@@ -186,7 +186,7 @@ def evaluate():
     total_pnl = net_now - init_cap
     total_pnl_pct = (total_pnl / init_cap) * 100
 
-    # 保存最新快照
+    # 保存最新快照（剔除临时计算列 dt）
     new_row = {
         "timestamp": now_dt.isoformat(),
         "net_assets": round(net_now, 2),
@@ -194,7 +194,10 @@ def evaluate():
         "total_assets": round(total_assets_now, 2)
     }
     df_hist = pd.concat([df_hist, pd.DataFrame([new_row])], ignore_index=True)
-    df_hist.to_csv(HISTORY_FILE, index=False)
+    
+    # 清理临时列 dt，保持 csv 干净
+    save_df = df_hist.drop(columns=["dt"], errors="ignore")
+    save_df.to_csv(HISTORY_FILE, index=False)
 
     # 绘图
     has_chart = plot_performance_chart(df_hist)
@@ -274,10 +277,10 @@ def send_notification(d):
 
     # 如果有折线图，通过 jsDelivr CDN 嵌入图片
     if d["has_chart"] and d["repo"]:
-        # 添加时间戳参数防止微信或浏览器图片缓存
         t_stamp = int(datetime.now().timestamp())
-        chart_url = f"https://fastly.jsdelivr.net/gh/{d['repo']}@main/{CHART_FILE}?v={t_stamp}"
-        lines.append(f"### 📉 净资产走势\n![资产走势]({chart_url})\n")
+        # 使用 github raw 链接（要求仓库是 Public）
+        chart_url = f"https://raw.githubusercontent.com/{d['repo']}/main/{CHART_FILE}?t={t_stamp}"
+        lines.append(f"### 📉 净资产走势\n\n![资产走势]({chart_url})\n")
 
     lines.append("### 📦 持仓分布")
     for code, s in d["asset_states"].items():
