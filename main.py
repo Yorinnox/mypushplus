@@ -258,10 +258,10 @@ def send_notification(d):
 
     has_actions = len(d["actions"]) > 0 or d["leverage_triggered"]
     status_tag = "⚠️【调仓提醒】" if has_actions else "📊"
-    title = f"{status_tag} 今日: {d['day_pnl'][1]:+.2f}%"
+    title = f"{d['day_pnl'][1]:+.2f}% | {d['net_assets']:,.0f}"
 
     lines = [
-        "### 📈 组合状态概览",
+        f"### {status_tag} 组合状态概览",
         f"- **总资产**: ¥{d['total_assets']:,.0f} | **净资产**: ¥{d['net_assets']:,.0f}",
         f"- **实际杠杆**: **{d['leverage']:.4f}x** (目标: 1.50x)",
         f"- **今日盈亏**: {format_pnl_str(d['day_pnl'][0], d['day_pnl'][1])}",
@@ -276,7 +276,7 @@ def send_notification(d):
         t_stamp = int(datetime.now().timestamp())
         # 使用 github raw 链接（要求仓库是 Public）
         chart_url = f"https://raw.githubusercontent.com/{d['repo']}/main/{CHART_FILE}?t={t_stamp}"
-        lines.append(f"### 📉 净资产走势\n\n![资产走势]({chart_url})\n")
+        lines.append(f"### 📈 净资产走势\n\n![资产走势]({chart_url})\n")
 
     lines.append("### 📦 持仓分布")
     for code, s in d["asset_states"].items():
