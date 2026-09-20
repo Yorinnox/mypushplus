@@ -258,8 +258,7 @@ def send_notification(d):
 
     has_actions = len(d["actions"]) > 0 or d["leverage_triggered"]
     status_tag = "⚠️【调仓提醒】" if has_actions else "📊"
-    day_val = d['day_pnl'][0]
-    title = f"{color_text(day_val, f'{day_val:+,.0f}')} | {d['net_assets']:,.0f}"
+    title = f"{d['day_pnl'][0]:+,.0f} | {d['net_assets']:,.0f}"
 
     lines = [
         f"### {status_tag} 组合状态概览",
