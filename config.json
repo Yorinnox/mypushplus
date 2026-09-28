@@ -1,7 +1,7 @@
 {
     "initial_capital_cny": 303569,
-    "debt_cny": 137697,
-    "target_leverage": 1.50,
+    "debt_cny": 165087,
+    "target_leverage": 1.493,
     "leverage_tolerance": 0.10,
     "weight_rel_tolerance": 0.20,
     "github_repo": "Yorinnox/mypushplus",
@@ -11,56 +11,64 @@
             "ticker": "512890.SS",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.1989,
-            "qty": 68000
+            "target_w": 0.0875,
+            "qty": 37100
+        },
+        "513180": {
+            "name": "恒生科技",
+            "ticker": "513180.SS",
+            "currency": "CNY",
+            "group": "A股账户",
+            "target_w": 0.0506,
+            "qty": 46700
         },
         "002714": {
             "name": "牧原股份",
             "ticker": "002714.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.1430,
-            "qty": 1600
+            "target_w": 0.1395,
+            "qty": 1700
         },
         "001201": {
             "name": "东瑞股份",
             "ticker": "001201.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.2047,
-            "qty": 6500
+            "target_w": 0.2274,
+            "qty": 6900
         },
         "QQQ": {
             "name": "纳指",
             "ticker": "QQQ",
             "currency": "USDT",
             "group": "币安/海外",
-            "target_w": 0.1848,
-            "qty": 17.65
+            "target_w": 0.1462,
+            "qty": 14.63
         },
         "BTC": {
             "name": "大饼",
             "ticker": "BTC-USD",
             "currency": "USDC",
             "group": "币安/海外",
-            "target_w": 0.1170,
-            "qty": 0.105
+            "target_w": 0.1407,
+            "qty": 0.126
         },
         "SOL": {
             "name": "Sol",
             "ticker": "SOL-USD",
             "currency": "USDC",
             "group": "币安/海外",
-            "target_w": 0.0568,
-            "qty": 39.37
+            "target_w": 0.1098,
+            "qty": 68.9
         },
         "PAXG": {
             "name": "黄金",
             "ticker": "PAXG-USD",
             "currency": "USDT",
             "group": "币安/海外",
-            "target_w": 0.0947,
-            "qty": 1.487
+            "target_w": 0.0982,
+            "qty": 1.749
         }
     }
 }
