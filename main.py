@@ -56,9 +56,10 @@ def find_closest_record(df_hist, target_dt):
     time_diffs = (df_hist["dt"] - target_dt).abs()
     best_idx = time_diffs.idxmin()
     return df_hist.loc[best_idx]
-def get_baseline_pnl(df_hist, now_net, now_dt):
+def get_baseline_pnl(df_hist, now_net, now_principal, now_dt):
     """
     精准锚定 0 点寻找最近历史快照计算 日/周/月/年 盈亏
+    区间真实盈亏 = 当前累计盈利 - 历史累计盈利（剔除出入金影响）
     """
     if df_hist.empty or len(df_hist) < 1:
         return (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0)
@@ -67,24 +68,36 @@ def get_baseline_pnl(df_hist, now_net, now_dt):
 
     report_dt = now_dt
     
-    # 2. 构造四个锚点时间（北京时间）
+    # 构造四个锚点时间（北京时间）
     target_day = report_dt.replace(hour=0, minute=0, second=0, microsecond=0)      # 今日 00:00
     target_week = target_day - timedelta(days=report_dt.weekday())                 # 本周一 00:00
     target_month = target_day.replace(day=1)                                       # 本月 1 日 00:00
     target_year = target_day.replace(month=1, day=1)                               # 本年 1 月 1 日 00:00
 
-    # 3. 寻找最接近锚点的记录
     rec_day = find_closest_record(df_hist, target_day)
     rec_week = find_closest_record(df_hist, target_week)
     rec_month = find_closest_record(df_hist, target_month)
     rec_year = find_closest_record(df_hist, target_year)
 
+    # 当前累计盈利
+    now_pnl = now_net - now_principal
+
     def calc_diff(record):
         if record is None:
             return 0.0, 0.0
-        base_val = float(record["net_assets"])
-        diff = now_net - base_val
-        pct = (diff / base_val) * 100 if base_val > 0 else 0.0
+        
+        past_net = float(record["net_assets"])
+        # 从历史记录读取当时本金（兼容旧记录如果没有 principal 的情况）
+        past_principal = float(record["principal"]) if "principal" in record and pd.notna(record["principal"]) else past_net
+        
+        # 当时累计盈利
+        past_pnl = past_net - past_principal
+        
+        # 区间纯投资收益 = 现在的盈利 - 当时的盈利
+        diff = now_pnl - past_pnl
+        
+        # 收益率基准：通常除以当时的资产规模
+        pct = (diff / past_net) * 100 if past_net > 0 else 0.0
         return diff, pct
 
     return calc_diff(rec_day), calc_diff(rec_week), calc_diff(rec_month), calc_diff(rec_year)
@@ -175,7 +188,7 @@ def evaluate():
     now_dt = datetime.now(TZ_BJ)
     df_hist = load_or_init_history()
     # 接收新增的 year_pnl
-    day_pnl, week_pnl, month_pnl, year_pnl = get_baseline_pnl(df_hist, net_now, now_dt)
+    day_pnl, week_pnl, month_pnl, year_pnl = get_baseline_pnl(df_hist, net_now, init_cap, now_dt)
 
     total_pnl = net_now - init_cap
     total_pnl_pct = (total_pnl / init_cap) * 100
@@ -238,6 +251,7 @@ def evaluate():
         "total_assets": total_assets_now,
         "net_assets": net_now,
         "leverage": leverage,
+        "target_leverage": cfg["target_leverage"],
         "total_pnl": total_pnl,
         "total_pnl_pct": total_pnl_pct,
         "day_pnl": day_pnl,
@@ -266,7 +280,7 @@ def send_notification(d):
     lines = [
         f"### {status_tag} 组合状态概览",
         f"- **总资产**: ¥{d['total_assets']:,.0f} | **净资产**: ¥{d['net_assets']:,.0f}",
-        f"- **实际杠杆**: **{d['leverage']:.4f}x** (目标: 1.50x)",
+        f"- **实际杠杆**: **{d['leverage']:.4f}x** (目标: {d['target_leverage']}x)",
         f"- **今日盈亏**: {format_pnl_str(d['day_pnl'][0], d['day_pnl'][1])}",
         f"- **本周盈亏**: {format_pnl_str(d['week_pnl'][0], d['week_pnl'][1])}",
         f"- **本月盈亏**: {format_pnl_str(d['month_pnl'][0], d['month_pnl'][1])}",
