@@ -4,6 +4,7 @@ import math
 import requests
 import pandas as pd
 import numpy as np
+import time
 import yfinance as yf
 from datetime import datetime
 import pytz
@@ -39,9 +40,35 @@ def load_config():
 def fetch_market_history(assets):
     tickers = [item["ticker"] for item in assets.values()]
     tickers += ["USDCNY=X", "USDT-USD", "USDC-USD"]
-    df = yf.download(tickers=tickers, period="1mo", interval="1d", progress=False)['Close']
-    df = df.ffill().bfill()
-    latest = df.iloc[-1]
+    tickers = list(dict.fromkeys(tickers))  # 保持顺序去重
+
+    # 最多重试 3 次，防止偶发网络抖动
+    for attempt in range(3):
+        # 核心改动：加上 threads=False 禁用多线程并发，彻底避免 SQLite 锁库冲突
+        df = yf.download(
+            tickers=tickers, 
+            period="1mo", 
+            interval="1d", 
+            progress=False, 
+            threads=False
+        )['Close']
+        
+        df = df.ffill().bfill()
+        
+        # 检查是否还有全部为 NaN 的标的
+        latest = df.iloc[-1]
+        nan_cols = latest[latest.isna()].index.tolist()
+        
+        if not nan_cols:
+            return latest  # 数据完整，直接返回
+        
+        print(f"⚠️ 第 {attempt + 1} 次抓取发现异常空值标的: {nan_cols}，正在重试...")
+        time.sleep(2)
+
+    # 如果重试3次仍有缺失，抛出明确提示
+    if latest.isna().any():
+        raise RuntimeError(f"以下标的行情获取失败（可能代码有误或停牌无数据）: {latest[latest.isna()].index.tolist()}")
+
     return latest
 
 def load_or_init_history():
