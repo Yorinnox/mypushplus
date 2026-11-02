@@ -14,7 +14,7 @@
             "target_w": 0.1451,
             "qty": 59100
         },
-        "513180": {
+        "KWEB": {
             "name": "KWEB",
             "ticker": "KWEB",
             "currency": "USDT",
@@ -70,7 +70,7 @@
             "target_w": 0.1052,
             "qty": 2.010
         },
-        "PAXG": {
+        "510300": {
             "name": "沪深300",
             "ticker": "510300.SS",
             "currency": "CNY",
