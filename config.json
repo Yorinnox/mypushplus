@@ -1,6 +1,6 @@
 {
     "initial_capital_cny": 340000,
-    "debt_cny": 164000,
+    "debt_cny": 168136,
     "target_leverage": 1.482,
     "leverage_tolerance": 0.10,
     "weight_rel_tolerance": 0.20,
