@@ -214,6 +214,19 @@ def evaluate():
     # 历史记录比对
     now_dt = datetime.now(TZ_BJ)
     df_hist = load_or_init_history()
+    
+    # ====== 【新增：判断是否创新高】 ======
+    is_ath = False
+    past_ath = 0.0
+    ath_diff = 0.0
+    if not df_hist.empty and len(df_hist) >= 1:
+        past_ath = float(df_hist["net_assets"].max())
+        # 净资产高于历史峰值 1 元以上视作创新高（防浮点误差）
+        if net_now > past_ath + 1.0:
+            is_ath = True
+            ath_diff = net_now - past_ath
+    # ====================================
+
     # 接收新增的 year_pnl
     day_pnl, week_pnl, month_pnl, year_pnl = get_baseline_pnl(df_hist, net_now, init_cap, now_dt)
 
@@ -288,7 +301,10 @@ def evaluate():
         "asset_states": asset_states,
         "actions": actions,
         "leverage_triggered": leverage_triggered,
-        "has_chart": has_chart
+        "has_chart": has_chart,
+        "is_ath": is_ath,
+        "past_ath": past_ath,
+        "ath_diff": ath_diff,
     }
 
 def send_notification(d):
@@ -298,27 +314,47 @@ def send_notification(d):
         return
 
     has_actions = len(d["actions"]) > 0 or d["leverage_triggered"]
-    status_tag = "⚠️【调仓提醒】" if has_actions else "📊"
-    
-    base_title = f"{d['day_pnl'][0]:+.0f}, {d['net_assets']:.0f}"
-    # 需要调仓时加上显眼的警示前缀，不需要时保持原标题
-    title = f"⚠️【调仓】{base_title}" if has_actions else base_title
+    is_ath = d.get("is_ath", False)
 
-    lines = [
+    # 1. 动态生成标题标签
+    if is_ath and has_actions:
+        status_tag = "🎉⚠️【新高+调仓】"
+    elif is_ath:
+        status_tag = "🎉【新高】"
+    elif has_actions:
+        status_tag = "⚠️【调仓】"
+    else:
+        status_tag = "📊"
+
+    base_title = f"{d['day_pnl'][0]:+.0f}, {d['net_assets']:.0f}"
+    title = f"{status_tag} {base_title}"
+
+    lines = []
+
+    # 2. 创新高专属庆祝横幅
+    if is_ath:
+        lines.extend([
+            "> 🏆 **恭喜！净资产创历史新高！**",
+            f"> 突破前高 `¥{d['past_ath']:,.0f}`，刷新纪录至 **¥{d['net_assets']:,.0f}** (+¥{d['ath_diff']:,.0f}) 🚀🚀🚀\n"
+        ])
+
+    # 3. 净资产旁如果创新高，加上 👑 ATH 勋章
+    ath_badge = " 👑 **ATH**" if is_ath else ""
+
+    lines.extend([
         f"### {status_tag} 组合状态概览",
-        f"- **总资产**: ¥{d['total_assets']:,.0f} | **净资产**: ¥{d['net_assets']:,.0f}",
+        f"- **总资产**: ¥{d['total_assets']:,.0f} | **净资产**: **¥{d['net_assets']:,.0f}**{ath_badge}",
         f"- **实际杠杆**: **{d['leverage']:.4f}x** (目标: {d['target_leverage']}x)",
         f"- **今日盈亏**: {format_pnl_str(d['day_pnl'][0], d['day_pnl'][1])}",
         f"- **本周盈亏**: {format_pnl_str(d['week_pnl'][0], d['week_pnl'][1])}",
         f"- **本月盈亏**: {format_pnl_str(d['month_pnl'][0], d['month_pnl'][1])}",
         f"- **本年盈亏**: {format_pnl_str(d['year_pnl'][0], d['year_pnl'][1])}",
         f"- **总累计盈亏**: {format_pnl_str(d['total_pnl'], d['total_pnl_pct'])}\n",
-    ]
+    ])
 
-    # 如果有折线图，通过 jsDelivr CDN 嵌入图片
+    # 如果有折线图，通过 jsDelivr/Raw 嵌入图片
     if d["has_chart"] and d["repo"]:
         t_stamp = int(datetime.now().timestamp())
-        # 使用 github raw 链接（要求仓库是 Public）
         chart_url = f"https://raw.githubusercontent.com/{d['repo']}/main/{CHART_FILE}?t={t_stamp}"
         lines.append(f"### 📈 净资产走势\n\n![资产走势]({chart_url})\n")
 
