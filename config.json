@@ -14,13 +14,13 @@
             "target_w": 0.1451,
             "qty": 59100
         },
-        "KWEB": {
-            "name": "KWEB",
-            "ticker": "KWEB",
-            "currency": "USDT",
-            "group": "币安/海外",
+        "513050": {
+            "name": "中概互联",
+            "ticker": "513050.SS",
+            "currency": "CNY",
+            "group": "A股账户",
             "target_w": 0.0630,
-            "qty": 203
+            "qty": 32700
         },
         "002714": {
             "name": "牧原股份",
@@ -44,7 +44,7 @@
             "currency": "USDT",
             "group": "币安/海外",
             "target_w": 0.1091,
-            "qty": 11.87
+            "qty": 11.91
         },
         "BTC": {
             "name": "大饼",
@@ -68,7 +68,7 @@
             "currency": "USDT",
             "group": "币安/海外",
             "target_w": 0.1052,
-            "qty": 2.010
+            "qty": 2.007
         },
         "510300": {
             "name": "沪深300",
@@ -76,7 +76,7 @@
             "currency": "CNY",
             "group": "A股账户",
             "target_w": 0.0588,
-            "qty": 7300
+            "qty": 7200
         }
     }
 }
