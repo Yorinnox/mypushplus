@@ -1,7 +1,7 @@
 {
     "initial_capital_cny": 328479,
-    "debt_cny": 168136,
-    "target_leverage": 1.482,
+    "debt_cny": 162035,
+    "target_leverage": 1.5,
     "leverage_tolerance": 0.10,
     "weight_rel_tolerance": 0.20,
     "github_repo": "Yorinnox/mypushplus",
@@ -11,72 +11,32 @@
             "ticker": "512890.SS",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.1451,
-            "qty": 59100
-        },
-        "513050": {
-            "name": "中概互联",
-            "ticker": "513050.SS",
-            "currency": "CNY",
-            "group": "A股账户",
-            "target_w": 0.0630,
-            "qty": 32700
-        },
-        "002714": {
-            "name": "牧原股份",
-            "ticker": "002714.SZ",
-            "currency": "CNY",
-            "group": "A股账户",
-            "target_w": 0.1419,
-            "qty": 1700
+            "target_w": 0.25,
+            "qty": 102700
         },
         "001201": {
             "name": "东瑞股份",
             "ticker": "001201.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.1308,
-            "qty": 4300
+            "target_w": 0.10,
+            "qty": 3100
         },
         "QQQ": {
             "name": "纳指",
             "ticker": "QQQ",
             "currency": "USDT",
             "group": "币安/海外",
-            "target_w": 0.1091,
-            "qty": 11.91
+            "target_w": 0.45,
+            "qty": 42.57
         },
         "BTC": {
             "name": "大饼",
             "ticker": "BTC-USD",
             "currency": "USDC",
             "group": "币安/海外",
-            "target_w": 0.1404,
+            "target_w": 0.2,
             "qty": 0.137
-        },
-        "SOL": {
-            "name": "Sol",
-            "ticker": "SOL-USD",
-            "currency": "USDC",
-            "group": "币安/海外",
-            "target_w": 0.1057,
-            "qty": 85.12
-        },
-        "PAXG": {
-            "name": "黄金",
-            "ticker": "PAXG-USD",
-            "currency": "USDT",
-            "group": "币安/海外",
-            "target_w": 0.1052,
-            "qty": 2.007
-        },
-        "510300": {
-            "name": "沪深300",
-            "ticker": "510300.SS",
-            "currency": "CNY",
-            "group": "A股账户",
-            "target_w": 0.0588,
-            "qty": 7200
         }
     }
 }
