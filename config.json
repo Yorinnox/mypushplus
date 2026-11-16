@@ -1,7 +1,7 @@
 {
     "initial_capital_cny": 328479,
-    "debt_cny": 63320,
-    "target_leverage": 1.19,
+    "debt_cny": 42360,
+    "target_leverage": 1.12,
     "leverage_tolerance": 0.10,
     "weight_rel_tolerance": 0.20,
     "github_repo": "Yorinnox/mypushplus",
@@ -36,7 +36,7 @@
             "currency": "USDC",
             "group": "币安/海外",
             "target_w": 0.16,
-            "qty": 0.197
+            "qty": 0.148
         }
     }
 }
