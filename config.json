@@ -11,7 +11,7 @@
             "ticker": "002714.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.03,
+            "target_w": 0.04,
             "qty": 300
         },
         "001201": {
@@ -19,7 +19,7 @@
             "ticker": "001201.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.12,
+            "target_w": 0.16,
             "qty": 3100
         },
         "QQQ": {
@@ -27,7 +27,7 @@
             "ticker": "QQQ",
             "currency": "USDT",
             "group": "币安/海外",
-            "target_w": 0.65,
+            "target_w": 0.64,
             "qty": 56.43
         },
         "BTC": {
@@ -35,7 +35,7 @@
             "ticker": "BTC-USD",
             "currency": "USDC",
             "group": "币安/海外",
-            "target_w": 0.2,
+            "target_w": 0.16,
             "qty": 0.197
         }
     }
