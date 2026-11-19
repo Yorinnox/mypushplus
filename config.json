@@ -27,16 +27,16 @@
             "ticker": "QQQ",
             "currency": "USDT",
             "group": "币安/海外",
-            "target_w": 0.64,
-            "qty": 56.43
+            "target_w": 0.6,
+            "qty": 53.43
         },
         "BTC": {
             "name": "大饼",
             "ticker": "BTC-USD",
             "currency": "USDC",
             "group": "币安/海外",
-            "target_w": 0.16,
-            "qty": 0.148
+            "target_w": 0.2,
+            "qty": 0.179
         }
     }
 }
