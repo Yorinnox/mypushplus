@@ -1,7 +1,7 @@
 {
     "initial_capital_cny": 328479,
-    "debt_cny": 42124,
-    "target_leverage": 1.12,
+    "debt_cny": 117541,
+    "target_leverage": 1.369,
     "leverage_tolerance": 0.10,
     "weight_rel_tolerance": 0.20,
     "github_repo": "Yorinnox/mypushplus",
@@ -11,7 +11,7 @@
             "ticker": "002714.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.04,
+            "target_w": 0.0295,
             "qty": 300
         },
         "001201": {
@@ -19,7 +19,7 @@
             "ticker": "001201.SZ",
             "currency": "CNY",
             "group": "A股账户",
-            "target_w": 0.16,
+            "target_w": 0.1167,
             "qty": 3100
         },
         "QQQ": {
@@ -27,16 +27,16 @@
             "ticker": "QQQ",
             "currency": "USDT",
             "group": "币安/海外",
-            "target_w": 0.6,
-            "qty": 53.43
+            "target_w": 0.683,
+            "qty": 70.24
         },
         "BTC": {
             "name": "大饼",
             "ticker": "BTC-USD",
             "currency": "USDC",
             "group": "币安/海外",
-            "target_w": 0.2,
-            "qty": 0.179
+            "target_w": 0.1708,
+            "qty": 0.187
         }
     }
 }
